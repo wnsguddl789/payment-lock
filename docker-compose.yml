@@ -1,0 +1,40 @@
+version: "3.8"
+
+services:
+  redis:
+    image: redis:7.2-alpine
+    container_name: payment-lock-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    environment:
+      - REDIS_REPLICATION_MODE=master
+    networks:
+      - payment-network
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: payment-lock-redis-commander
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOSTS=local:redis:6379
+    depends_on:
+      - redis
+    networks:
+      - payment-network
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  payment-network:
+    driver: bridge
